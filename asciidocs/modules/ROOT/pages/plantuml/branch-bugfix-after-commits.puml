@@ -1,0 +1,28 @@
+// https://isgb.otago.ac.nz/infosci/mark.george/Wiki/wiki/PlantUML%20GraphViz%20Layout
+@startuml
+left to right direction
+together {
+    circle one as " "
+    circle two as " "
+    circle three  as " "
+    circle four  as " "
+    one <-- two
+    two <-- three
+    three <-- four
+}
+together {
+    circle five  as " "
+    three <-- five
+    circle six  as " "
+    five <-- six
+    circle seven  as " "
+    six <-- seven
+}
+card MASTER
+four <-- MASTER
+card bugfix
+seven <-- bugfix
+card HEAD
+bugfix <-- HEAD
+@enduml
+

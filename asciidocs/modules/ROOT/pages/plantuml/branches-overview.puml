@@ -1,0 +1,15 @@
+@startuml
+circle first  as " "
+circle second as " "
+circle third  as " "
+first <-left- second
+second <-left- third
+circle fourth  as " "
+third <-up- fourth
+circle fifth  as " "
+fourth <-left- fifth
+circle six  as " "
+fifth <-left- six
+circle seven  as " "
+third <-left- seven
+@enduml

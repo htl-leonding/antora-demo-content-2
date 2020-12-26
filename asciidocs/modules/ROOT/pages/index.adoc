@@ -1,0 +1,1256 @@
+= Git Lecture Notes
+Thomas W. Stütz
+1.0.0, 2020-10-04: Notes for Git Labs
+ifndef::imagesdir[:imagesdir: images]
+//:toc-placement!:  // prevents the generation of the doc at this position, so it can be printed afterwards
+:sourcedir: ../src/main/java
+:icons: font
+:sectnums:    // Nummerierung der Überschriften / section numbering
+:toc: left
+
+//Need this blank line after ifdef, don't know why...
+ifdef::backend-html5[]
+
+// print the toc here (not at the default position)
+//toc::[]
+
+== Install Git
+
+* https://git-scm.com/download/
+* It is recommended
+** for Win user to use https://gitforwindows.org/[Git Bash]
+** for MacOS user to use https://brew.sh/index_de[HomeBrew]
+** for Linux user to use the package manager
+
+== Git Clients
+
+* Console !!!!!!!
+* IntelliJ
+* https://www.gitkraken.com/[GitKraken] (free for non-commercial projects, for Win, MacOS and Linux)
+* plugins for other IDEs
+
+== Git Console Prettifier
+
+* macOS: zsh with Git plugin
+* windows: posh-git
+
+== centralized vs distributed vcs
+
+* examples:
+** subversion,
+** ms team foundation server
+
+.centralized vcs
+[plantuml,centralvcs,png]
+----
+@startuml
+rectangle "centralized vcs" as vcs
+actor basti
+actor luki
+actor edina
+edina -up- vcs
+basti -- vcs
+luki -up-vcs
+@enduml
+----
+
+* Single-point-of-failure
+
+.distributed vcs
+[plantuml,distributedvcs,png]
+----
+@startuml
+rectangle "remote vcs" as vcs
+rectangle "local repo" as repo1
+rectangle "local repo" as repo2
+rectangle "local repo" as repo3
+
+actor basti
+actor luki
+actor edina
+edina -up- repo1
+basti -- repo3
+luki -up-repo2
+
+repo1 -up- vcs
+repo2 -up- vcs
+repo3 -- vcs
+@enduml
+----
+
+
+== Initializing aRepository
+
+[source,shell]
+----
+mkdir my-first-repo
+cd my-first-repo
+git init
+ls -a
+open .git
+rm -rf .git  # -> beim prompt verschwindet die git info
+git init
+----
+
+== Git Workflow
+
+
+
+[plantuml,workflow01,png]
+----
+@startuml
+folder "working copy" as workingcopy
+storage "staging area \nindex" as staging
+database "local repo" as localrepo
+workingcopy -right-> staging
+staging -right-> localrepo
+@enduml
+----
+
+* with the staging area, you can choose the file(s) of the working copy for the commit.
+
+[quote, de.wikipedia.org]
+____
+Staging ist ein Prozess oder Bereich der Informationsintegration, in dem Daten in einem Datenbereich (engl.: staging area, der Bereitstellungsraum oder Sammelplatz beim Militär) temporär zwischengespeichert oder bearbeitet werden, um sie dort zu bereinigen, zu transformieren oder zu migrieren.
+____
+
+
+
+=== A first Commit
+
+[source,shell]
+----
+touch file1
+touch file2
+----
+
+.Two files are in the working copy folder
+[plantuml,workflow02,png]
+----
+@startuml
+folder "working copy" as workingcopy {
+  file "file1" as file1
+  file "file2" as file2
+}
+storage "staging area \nindex" as staging
+database "local repo" as localrepo
+file2 -right-> staging
+staging -right-> localrepo
+@enduml
+----
+
+
+[source,shell]
+----
+git add file1 file2
+----
+
+.Now the files are in the staging area
+[plantuml,workflow03,png]
+----
+@startuml
+folder "working copy" as workingcopy {
+  file "file1" as file1
+  file "file2" as file2
+}
+storage "staging area" as staging {
+  file "file1" as file3
+  file "file2" as file4
+
+}
+database "local repo" as localrepo
+file2 -right-> staging
+file4 -right-> localrepo
+@enduml
+----
+
+[source,shell]
+----
+git commit -m "initial commit"
+----
+
+.Finally the files are copied to the local repo
+[plantuml,workflow04,png]
+----
+@startuml
+folder "working copy" as workingcopy {
+  file "file1" as file1
+  file "file2" as file2
+}
+storage "staging area" as staging {
+  file "file1" as file3
+  file "file2" as file4
+}
+database "local repo" as localrepo {
+  card version1 {
+    file "file2" as file6
+    file "file1" as file5
+  }
+}
+file2 -right-> staging
+file4 -right-> version1
+@enduml
+----
+
+* a snapshot (version1) is stored in the local repo
+* -m -> meaningful message
+* the staging area is not empty; it reflects the current "productive system" or includes already the changes for the next version
+
+=== Exercise: change a file
+
+.After changing file1 we add it to the staging area
+[source,shell]
+----
+echo xxx >> file1
+cat file1
+git status
+git add file1 # <.>
+git status
+----
+
+<.> even the file ist deleted, we have to add it to the staging area
+
+.and commit the changes
+[source,shell]
+----
+git commit -m "remove unused code"
+----
+
+[plantuml,workflow05,png]
+----
+@startuml
+folder "working copy" as workingcopy {
+  file "file1" as file1
+  file "file2" as file2
+}
+storage "staging area" as staging {
+  file "file1" as file3
+  file "file2" as file4
+}
+database "local repo" as localrepo {
+  card version1 {
+    file "file2" as file6
+    file "file1" as file5
+  }
+  card version2 {
+    file "file2" as file8
+    file "file1" as file7
+  }
+}
+file2 -right-> staging
+file4 -right-> version2
+@enduml
+----
+
+
+=== Exercise: delete a file
+
+.After changing file1 we add it to the staging area
+[source,shell]
+----
+rm file2
+ls
+git status
+git add file2
+git status
+----
+
+[source,shell]
+----
+git commit -m "remove unused code"
+----
+
+
+[plantuml,workflow06,png]
+----
+@startuml
+folder "working copy" as workingcopy {
+  file "file1" as file1
+}
+storage "staging area" as staging {
+  file "file1" as file3
+}
+database "local repo" as localrepo {
+  card version1 {
+    file "file2" as file6
+    file "file1" as file5
+  }
+  card version2 {
+    file "file2" as file8
+    file "file1" as file7
+  }
+  card version3 {
+    file "file1" as file9
+  }
+}
+file1 -right-> staging
+file3 -right-> version3
+@enduml
+----
+
+
+* Git doesn't store the the differences between the snapshots, it always stores all files
+* the content is compressed
+* duplicate content is not stored
+
+
+=== Exercise: Rename a File
+
+[source,shell]
+----
+mv file1 Main.java
+git status
+----
+
+====
+git mv oldfile newfile
+====
+
+=== Ignore Files
+
+* In einem File `.gitignore` werden sämtliche Dateien und Ordner angegeben, die NICHT ins Repo gespeichert werden,
+dh sie sind nicht Bestandteil einer Version (Schnappschuss)
+* Werden bereits im Repo enthaltene Files in die .gitignore eingetragen, so werden diese weiterhin committed
+** Diese Files sind vorher aus dem Repo zu löschen
+
+=== Unstaging files
+
+[source,bash]
+----
+git restore --staged <files>
+git restore --staged .
+----
+
+=== Short Version for git status
+
+[source,bash]
+----
+git status -s
+----
+
+
+=== Änderungen bis zum letzten Commit zurücknehmen
+
+Falls ein geändertes File noch nicht commited wurde,
+kann man die Änderungen bis zum letzten commit zurücknehmen.
+
+[source,bash]
+----
+git restore <file>
+----
+
+oder
+
+.Sämtliche Änderungen des gesamten Snapshots werden zurückgesetzt
+[source,bash]
+----
+git restore .
+----
+
+* Neu erstellte Files bleiben bestehen
+
+* Löschen neu erstellter Files
+
+[source,bash]
+----
+git clean -f
+----
+
+IMPORTANT: Dangerous operation
+
+
+=== Den Zustand eines früheren Commits herstellen
+
+.ein File wurde zB gelöscht
+[source,bash]
+----
+git rm <file>
+----
+
+.ein File wurde zB gelöscht
+[source,bash]
+----
+git restore --source=HEAD~1 <file-with-exact-path> #<.>
+----
+
+<.> HEAD~1 bedeutet, ein Commit vor dem letzten Commit (vorletzter Commit)
+
+Das neu erstellte (bzw. zurückgeholte) File ist untracked.
+
+=== Detached HEAD
+
+
+* In git gibt es mehrere Branches
+** Der Hauptbranch heißt in git `master`
+** in anderen VCS `trunk`
+
+.Auf den letzten Commit zeigen sowohl MASTER als auch HEAD
+[plantuml, commits, png, align=left]
+----
+include::plantuml/commits.puml[]
+----
+
+.Anzeigen der Commit-Id's
+[source,shell]
+----
+git log --oneline
+----
+
+.output
+----
+8ade525 (HEAD, master) remove unused code
+db633a9 make the repo clean
+028fc7c add important code
+cc9fd84 remove unused code
+9f57ec0 add minutes-of-meeting-template
+3fb9399 initial commit
+----
+
+.Der HEAD wird auf den (zB) ersten Commit gesetzt
+[source,shell]
+----
+# git checkout <commit-id>
+git checkout 3fb9399
+git log --oneline  <.>
+----
+<.> Anzeigen der neuen History
+* mit git log --oneline, würde man nur alle früheren commits sehen
+* mit git log --oneline --all, würde man alle commits (auch die späteren) sehen
+
+.output
+----
+3fb9399 (HEAD) initial commit
+----
+
+
+
+.Detached HEAD
+[plantuml, commits-detached-head,png, align=left]
+----
+include::plantuml/commits-detached-head.puml[]
+----
+
+* Wenn der HEAD-Pointer zu einem (früheren) Commit zeigt, spricht man von einem detached HEAD,
+dh MASTER und HEAD zeigen nicht mehr auf den selben (den letzten) Commit
+* Bei einem detached HEAD, sollten keinen neuen Commits durchgeführt werden
+** diese neuen Commits wären nicht mehr erreichbar
+
+
+.würde man einen neuen Commit erstellen (wie hier abgebildet), so wäre dieser nicht mehr erreichbar, nachdem HEAD wieder auf den letzten commit gesetzt wird
+[plantuml, commits-detached-head-lost-commit, png, align=left]
+----
+include::plantuml/commits-detached-head-lost-commit.puml[]
+----
+
+[plantuml, commits-detached-head-lost-commit-2,png, align=left]
+----
+include::plantuml/commits-detached-head-lost-commit-2.puml[]
+----
+
+
+== Summary
+
+
+Initializing a repository
+git init
+
+.Staging files
+----
+git add file1.js                  # Stages a single file git
+add file1.js file2.js             # Stages multiple files
+git add *.js                      # Stages with a pattern
+git add .                         # Stages the current directory and all its content
+----
+
+.Viewing the status
+----
+git status                        # Full status
+git status -s                     # Short status
+----
+
+.Committing the staged files
+----
+git commit -m "Message"           # Commits with a one-line message
+git commit                        # Opens the default editor to type a long message
+----
+
+.Skipping the staging area
+----
+git commit -am "Message"
+----
+
+.Removing files
+----
+git rm file1.js                  # Removes from working directory and staging area
+git rm --cached file1.js         # Removes from staging area only
+----
+
+.Renaming or moving files
+----
+git mv file1.js file1.txt
+----
+
+.Viewing the staged/unstaged changes
+----
+git diff                         # Shows unstaged changes
+git diff --staged                # Shows staged changes
+git diff --cached                # Same as the above
+----
+
+.Viewing the history
+----
+git log                          # Full history
+git log --oneline                # Summary
+git log --reverse                # Lists the commits from the oldest to the newest
+----
+
+.Viewing a commit
+----
+git show 921a2ff                 # Shows the given commit
+git show HEAD                    # Shows the last commit
+git show HEAD~2                  # Two steps before the last commit
+git show HEAD:file.js            # Shows the version of file.js stored in the last commit
+----
+
+.Unstaging files (undoing git add)
+----
+git restore --staged file.js     # Copies the last version of file.js from repo to index
+----
+
+.Discarding local changes
+----
+git restore file.js              # Copies file.js from index to working directory
+git restore file1.js file2.js    # Restores multiple files in working directory
+git restore .                    # Discards all local changes (except untracked files)
+git clean -fd                    # Removes all untracked files
+----
+
+.Restoring an earlier version of a file
+----
+git restore --source=HEAD~2 file.js
+----
+
+== Git Workflow 2
+
+
+=== Blame for Finding the Author of a Line
+
+* to blame -> jmd. Vorwürfe machen; Schuld zuweisen
+
+Gibt den Autor der einzelnen Commits einer Datei an.
+
+[source,shell]
+----
+git blame file1.txt
+----
+
+----
+^2b40896 (htl-leonding 2020-10-19 09:29:57 +0200 1) hello 3ahif
+^2b40896 (htl-leonding 2020-10-19 09:29:57 +0200 2) hallo 3ahif
+----
+
+.Parameter -e zum Anzeigen des emails
+[source,shell]
+----
+git blame -e file1.txt
+----
+
+----
+^2b40896 (<t.stuetz@htl-leonding.ac.at> 2020-10-19 09:29:57 +0200 1) hello 3ahif
+^2b40896 (<t.stuetz@htl-leonding.ac.at> 2020-10-19 09:29:57 +0200 2) hallo 3ahif
+----
+
+
+=== Tagging
+
+* to tag -> kennzeichnen, markieren
+
+Kennzeichnen eines Commits (zB vergeben eines Namens oder einer Versionsnummer)
+
+.taggen des aktuellen commits (HEAD)
+[source,shell]
+----
+git tag v1.0.0
+----
+
+.git log --oneline
+----
+a642e12 (HEAD -> master, tag: v1.0.0) Add header to all pages.
+50db987 Include the first section in TOC.
+555b62e Include the note about committing after staging the changes.
+91f7d40 Explain various ways to stage changes.
+...
+----
+
+.taggen eines bestimmten (früheren) commits
+[source,shell]
+----
+# git tag v1.0.0 <commit-hash>
+git tag v1.0.0 9b6ebfd
+----
+
+==== Exkurs: Semantische Versionierung
+
+* Semantik -> Bedeutungsinhalt
+* Syntax -> Struktur eines (hier) Codefragments
+
+https://semver.org/lang/de/
+
+* Versionsnummern haben folgende Struktur
+** MAJOR.MINOR.PATCH zB 1.0.0
+*** MAJOR: Eine neue Version, die nicht kompatibel mit den bisherigen Versionen ist.
+Bruch der API. Meistens eine neue Hauptversion zB v2.0.0
+**** Version 1.x.x bedeutet, dass diese Version bereits released (für einen Kunden freigegeben) wurde
+**** Version 0.x.x -> Software wurde noch nicht released, ist wahrscheinlich noch nicht fertig gestellt
+*** MINOR: Neue Features werden hinzugefügt, jedoch Kompatibilität bleibt bestehen; zB 1.1.0
+*** PATCH: Fehlerbehebung: Die API / Schnittstelle ändert sich nicht, es werden nur Fehler korrigiert zB v1.0.1
+
+zB v1.0.1
+Ist eine releaste Version (Kunde hat Version erhalten) -> v1.x.x
+in diese Version wurden bereits Fehler behoben (bugfix) -> vx.x.1
+
+.Liste aller erstellten Tags
+[source,shell]
+----
+git tag
+----
+
+==== Annotated Tag
+
+* Zu einem Tag kann eine Message hinzugefügt werden
+
+.Parameter -a
+[source,shell]
+----
+git tag -a v1.1.0 -m "My version 1.1.0"
+----
+
+.Liste aller erstellten Tags mit Message
+[source,shell]
+----
+git tag -n
+----
+
+.Informationen anzeigen für einen bestimmten Tag
+[source,shell]
+----
+git show v1.0.0
+----
+
+== Branches
+
+=== Fragen zu Branches
+
+* Unterschied zwischen Git und anderen VCS (zB Subversion), wie Branches verwaltet/erstellt werden
+
+* Was ist einer der häufigsten Fehler beim committen
+oder wieso gibt es Terminal-Erweiterungen für Git
+
+* Was versteht man unter einem "dirty working directory"
+
+[plantuml, branches-overview, png, align=left]
+----
+include::plantuml/branches-overview.puml[]
+----
+
+In Git wird beim Erstellen eines neuen Branch nur ein neuer "Pointer" erstellt,
+der auf den neuesten Commits des neuen Branch zeigt.
+
+
+* Die anschließenden Beispiele verwenden Venus.zip
+
+=== Erstellen eines Branch
+
+[source,shell]
+----
+git branch bugfix
+----
+
+
+=== Auflisten aller Branches
+
+[source,shell]
+----
+git branch
+----
+
+.git branch
+----
+  bugfix
+* master  # <.>
+----
+
+<.> Der Asterisk (*) bedeutet, dass momentan der Branch MASTER aktiv ist
+
+[plantuml, branch-bugfix-create, png, align=left]
+----
+include::plantuml/branch-bugfix-create.puml[]
+----
+
+
+=== Zu einem Branch wechseln
+
+* Früher wurde der Befehl `checkout` verwendet
+
+.Wechseln zum Branch "bugfix"
+[source,shell]
+----
+git switch bugfix
+----
+
+[plantuml, branch-bugfix-switch, png, align=left]
+----
+include::plantuml/branch-bugfix-switch.puml[]
+----
+
+* Die weiteren Commits werden dem Branch `bugfix` zugeordnet.
+
+=== Umbenennen eines Branch
+
+Da der Branch nur `bugfix` heißt, ist diser Name nicht sprechend.
+Kommen weiter bugixes hinzu, kann man nicht mehr zuordnen, welcher Branch, welchen Bug fixed.
+Daher benennen wir den Branch zu `bugfix/signup-form`.
+
+[source,shell]
+----
+git branch -m bugfix bugfix/signup-form
+----
+
+// TODO: Diagramm - weniger Commits
+
+[plantuml, branch-bugfix-rename, png, align=left]
+----
+include::plantuml/branch-bugfix-rename.puml[]
+----
+
+
+Nach einem Commit
+[plantuml, branch-bugfix-rename, png, align=left]
+----
+include::plantuml/branch-bugfix-after-commits.puml[]
+----
+
+Nach einem Commit
+[source,shell]
+----
+git commit -m "fix that bug"
+----
+
+----
+ $ git log --oneline
+e4d35dc (HEAD -> master) fix that bug
+a642e12 (tag: v1.0.0, bugfix/signup-form) Add header to all pages.
+50db987 Include the first section in TOC.
+555b62e Include the note about committing after staging the changes.
+91f7d40 Explain various ways to stage changes.
+edb3594 First draft of staging changes.
+24e86ee Add command line and GUI tools to the objectives.
+36cd6db Include the command prompt in code sample.
+9b6ebfd Add a header to the page about initializing a repo.
+fa1b75e Include the warning about removing .git directory.
+dad47ed Write the first draft of initializing a repo.
+fb0d184 Define the audience.
+1ebb7a7 Define the objectives.
+ca49180 Initial commit.
+----
+
+=== Auflisten aller Commits (aller Branches)
+
+[source,shell]
+----
+git log --oneline --all
+----
+
+=== Löschen eines Branches
+
+* Nach einem merge wird der Branch nicht mehr benötigt und kann gelöscht werden
+
+[source,shell]
+----
+git branch -d bugfix/signup-form
+----
+
+* Fehlermeldung, falls Branch noch nicht "fully merged"
+
+// TODO: output
+
+.Forcing the deletion
+[source,shell]
+----
+git branch -D bugfix/signup-form
+----
+
+// TODO: output
+
+=== Anzeigen aller Commits nur im Branch
+
+.Alle Commits des Branches werden angezeigt, jedoch nicht die Commits des Masters
+[source,shell]
+----
+git log master..bugfix/signup-form
+----
+
+// TODO: output
+
+=== Anzeigen aller Änderungen in einem Branch
+
+[source,shell]
+----
+git diff master..bugfix/signup-form
+----
+
+// TODO: output
+
+.kürzere Schreibweise
+[source,shell]
+----
+git diff bugfix/signup-form
+----
+
+
+=== Stashing
+
+to stash ... verstecken, verstauen, versteckt halten
+
+* Bei einem switch setzt git das working directory auf den Snapshot des Zielbranches,
+dh die Dateien und Verzeichisse werden wieder so hergestellt, wie sie es beim letzten Commit des Zielbranches waren.
+
+* Problem
+** Wir könnten "local changes" an den Dateien / Verzeichnissen im Ausgangs-Branch durchgeführt haben, die noch nicht committed wurden.
+** Die lokale Änderungen könnten verloren gehen und daher erlaubt git den switch *nicht*.
+
+* Lösung
+** git schlägt vor die lokalen Änderungen zu "stashen"
+** also an einem "sichern" Platz zu speichern
+** die Inhalte dieses sichern Platzes sind nicht Teil der History
+
+.Erstellen eines Stash
+[source,shell]
+----
+git stash push -m "New tax rules"
+----
+
+
+* Ändert man nun eine Datei kann man diese ebenfalls in einem separaten Stash speichern.
+
+[source,shell]
+----
+git stash push -am "My new stash" # <.> <.>
+git stash list
+----
+
+<.> -a ... all
+<.> -m ... message
+
+// TODO: output
+
+
+=== Merges
+
+* Fast-forward merges
+* 3-way merges
+
+
+==== Fast-Forward Merge
+
+* Es wird ein Branch (bugfix) erstellt.
+* In diesen Branch wird mehrmals comitted.
+* Im master-branch wird *nichts* comitted.
+* Nun möchte man den bugfix-branch in den master-branch einpflegen.
+* Da im master-branch noch keine weiteren Commits duchgeführt wurden, kann man einfach den master-branch-tag auf den HEAD-tag des bugfix-branches setzen
+
+.Fast-forward merge
+[source,shell]
+----
+git log --oneline --all --graph
+git switch master
+git merge bugfix/signup-form
+git log --oneline --all --graph
+----
+
+// im output steht "Fast-forward"
+
+* con
+** pollutes the history
+
+* pro
+** true reflection of history
+** allows reverting a feature
+
+.Man kann fast-forward-merges ausschalten
+----
+git config ff no
+----
+
+.oder
+----
+git config --global ff no
+----
+
+
+==== 3-Way-Merge
+
+* Es wird ein Branch (bugfix) erstellt.
+* Im bugfix-branch werden commits durchgeführt.
+* Im master-branch werden ebenfalls commits durchgeführt.
+* Werden master- und bugfix-branch gemerged, so wir ein neuer commit erstellt.
+
+
+[source,shell]
+----
+git switch -C bugfix/login-form # <.>
+echo "new line" >> toc.txt
+git add .
+git commit -m "Build the password form"
+git log --oneline --all --graph
+----
+<.> -C ... erstellt gleichzeitig einen Branch
+
+----
+ $ git log --oneline --all --graph
+* 1ede4ad (HEAD -> bugfix/login-form) Build the password form
+* a642e12 (master) Add header to all pages.
+* 50db987 Include the first section in TOC.
+* 555b62e Include the note about committing after staging the changes.
+* 91f7d40 Explain various ways to stage changes.
+* edb3594 First draft of staging changes.
+...
+----
+
+* Der Branch ist noch nicht diverged (master hat noch keinen Commit)
+* diverged ... auseinandergehend, abweichend
+
+[source,shell]
+----
+git switch master
+echo "new line to objectives" >> objectives.txt
+git add .
+git commit -m "Update objectives.txt"
+git log --oneline --all --graph
+----
+
+.output
+----
+$ git log --oneline --all --graph
+* 0f9a0d9 (HEAD -> master) Update objectives.txt
+| * 1ede4ad (bugfix/login-form) Build the password form
+|/
+* a642e12 Add header to all pages.
+* 50db987 Include the first section in TOC.
+* 555b62e Include the note about committing after staging the changes.
+* 91f7d40 Explain various ways to stage changes.
+* edb3594 First draft of staging changes.
+* 24e86ee Add command line and GUI tools to the objectives.
+----
+
+////
+[source,shell]
+----
+git merge --no-ff bugfix/login-form # <.>
+git log --oneline --all --graph # <.>
+----
+
+
+<.> --no-ff ... verhindert einen fast-forward-merge, auch wenn dieser möglich wäre
+<.> hier sieht man graphisch den neu erstellten commit
+////
+
+
+
+
+
+[source,shell]
+----
+git merge feature/bugfix/login-form
+git log --oneline --all --graph
+----
+
+// TODO: Problem ->merge: feature/bugfix/login-form - not something we can merge
+
+
+=== Viewing Merged and Unmerged Branches
+
+.Liste aller merged branches
+[source,shell]
+----
+git branch --merged
+----
+
+* Nun können diese Branches gelöscht werden
+
+[source,shell]
+----
+git branch -d bugfix/login-form
+----
+
+
+.Liste aller noch nicht merged branches
+[source,shell]
+----
+git branch --no-merged
+----
+
+
+=== Merge Conflicts
+
+* Conflicts
+** Change1, Change2
+** Change, Delete
+** Add1, Add2
+
+.Now we create a conflict
+[source,shell]
+----
+git switch -C bugfix/change-password
+echo x >> change-password.txt
+git add .
+git commit -m "Update change-password.txt"
+git switch master
+echo "Change in the master branch" > change-password.txt # <.>
+git add .
+git commit -m "Update change-password.txt"
+git merge bugfix/change-password
+----
+
+<.> a new file has to be created, because in the master brach it doesn't exist
+
+.Now we get a conflict
+----
+CONFLICT (add/add): Merge conflict in change-password.txt
+Auto-merging change-password.txt
+Automatic merge failed; fix conflicts and then commit the result.
+----
+
+[source,shell]
+----
+git status
+----
+
+* -> Unmerged paths
+
+
+// TODO: show conflict solving in IntelliJ
+
+
+====
+
+
+[source,shell]
+----
+git branch --merged
+git branch --no-merged  # <.>
+----
+
+<.> List of branches not merged
+
+
+[source,shell]
+----
+git switch -C bugfix/change-password
+----
+
+----
+Switched to and reset branch 'bugfix/change-password'
+----
+
+[source,shell]
+----
+idea change-password.txt
+----
+
+.change-password.txt
+----
+hello
+Change in the bugfix branch
+----
+
+
+
+[source,shell]
+----
+git add change-password.txt
+git commit -m "Update change-password.txt"
+git switch master
+idea change-password.txt
+----
+
+.change-password.txt
+----
+hello
+Change in the master branch.
+----
+
+
+[source,shell]
+----
+git add change-password.txt
+git commit -m "Update change-password.txt"
+----
+
+
+[source,shell]
+----
+git merge bugfix/change-password
+----
+
+----
+Auto-merging change-password.txt
+CONFLICT (content): Merge conflict in change-password.txt
+Automatic merge failed; fix conflicts and then commit the result.
+----
+
+
+[source,shell]
+----
+git status
+----
+
+----
+On branch master
+You have unmerged paths.
+  (fix conflicts and run "git commit")
+  (use "git merge --abort" to abort the merge)
+
+Unmerged paths:
+  (use "git add <file>..." to mark resolution)
+	both modified:   change-password.txt
+----
+
+[source,shell]
+----
+idea change-password.txt
+----
+
+.change-password.txt
+----
+hello
+<<<<<<< HEAD
+Change in the master branch.
+=======
+Change in the bugfix branch
+>>>>>>> bugfix/change-password
+----
+
+.change-password.txt
+----
+hello
+Change in the master branch.
+Change in the bugfix branch
+----
+
+
+.add to stage in master-branch
+[source,shell]
+----
+git add change-password.txt
+git status
+----
+
+----
+On branch master
+All conflicts fixed but you are still merging.
+  (use "git commit" to conclude merge)
+
+Changes to be committed:
+	modified:   change-password.txt
+----
+
+.ohne Kommentar commiten
+[source,shell]
+----
+git commit
+----
+
+----
+[master b7f555e] Merge branch 'bugfix/change-password'
+----
+
+.Merge-Unterstützung in IntelliJ
+https://www.youtube.com/watch?v=jEN3D9EN7ss[Branches Commit Pull Request Merge in IntelliJ IDEA and GitHub: Example with Code, window="_blank"]
+
+
+
+
+
+[source,shell]
+----
+
+----
+
+
+
+
+
+
+
+
+[source,shell]
+----
+
+----
+
+
+
+
+
+
+
+
+[source,shell]
+----
+
+----
+
+
+
+
+
+
+
+
+[source,shell]
+----
+
+----
+
+
+
+
+
+
+
+
+[source,shell]
+----
+
+----
+
+
+
+
+
+
+
+
+[source,shell]
+----
+
+----
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
